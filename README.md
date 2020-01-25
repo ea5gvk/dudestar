@@ -4,6 +4,7 @@ Software to RX/TX D-STAR, DMR, Fusion YSF, and P25(RX only) reflectors and repea
 This software connects to D-STAR, Fusion, and P25 reflectors and gateways/repeaters over UDP.  If a AMBE3000 based USB DV dongle is detected, TX is enabled for DSTAR, DMR, and Fusion.  If no DV dongle is detected, or is in use by another instance of DUDE-Star, then it become a software AMBE decoding application, formerly known as DUDE-Star RX.  Decoding of the audio is done via the mbelib C library.
 
 This software makes use of software from a number of other open source software projects, including:
+
 MMDVM_CM: https://github.com/nostar/dudestar_rx
 
 XLXD: https://github.com/LX3JL/xlxd
