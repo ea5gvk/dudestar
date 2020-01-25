@@ -5,9 +5,13 @@ This software connects to D-STAR, Fusion, and P25 reflectors and gateways/repeat
 
 This software makes use of software from a number of other open source software projects, including:
 MMDVM_CM: https://github.com/nostar/dudestar_rx
+
 XLXD: https://github.com/LX3JL/xlxd
+
 DSDcc: https://github.com/f4exb/dsdcc
+
 DSD: https://github.com/szechyjs/dsd
+
 MBELIB: https://github.com/szechyjs/mbelib
 
 Not only is software from these projects being used directly, but learning about the various network protocols and encoding/decoding of the various protocols was only possible thanks to the authors of all of these software projects.
