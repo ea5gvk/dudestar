@@ -17,7 +17,7 @@
 
 #ifndef DUDESTAR_H
 #define DUDESTAR_H
-#define USE_FLITE
+//#define USE_FLITE
 
 #include <QMainWindow>
 #include <QSerialPort>
