@@ -17,6 +17,9 @@ MBELIB: https://github.com/szechyjs/mbelib
 
 Not only is software from these projects being used directly, but learning about the various network protocols and encoding/decoding of the various protocols was only possible thanks to the authors of all of these software projects.
 
+# Optional FLite Text-to-speech build
+I added Flite TTS TX capability to DUDE-Star so I didn't have to talk to myself all of the time during development and testing.  To build DUDE-Star with Flite TTS support, uncomment the line #define USE_FLITE from the top of dudestar.h. You will need the Flite library and development header files installed on your system.  When built with Flite support, 4 TTS check options and a Mic in option will be available at the bottom of the window.  TTS1-TTS4 are 4 voice choices, and Mic in turns off TTS and uses the microphone for input.  The text to be converted to speech and transmitted goes in the text box under the TTS checkboxes.
+
 # Usage
 On first launch, DUDE-Star will attempt to download the DMR ID list and the DPlus host file.  The remaining host files will be downloaded as each one is selected.
 
