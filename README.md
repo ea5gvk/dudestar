@@ -5,7 +5,7 @@ This software connects to D-STAR, Fusion, and P25 reflectors and gateways/repeat
 
 This software makes use of software from a number of other open source software projects, including:
 
-MMDVM_CM: https://github.com/nostar/dudestar_rx
+MMDVM_CM: https://github.com/nostar/MMDVM_CM
 
 XLXD: https://github.com/LX3JL/xlxd
 
