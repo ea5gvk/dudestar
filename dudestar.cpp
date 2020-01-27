@@ -887,6 +887,7 @@ void DudeStar::disconnect_from_host()
 		d.append(0x18);
 		d.append('\x00');
 		d.append('\x00');
+		ping_timer->stop();
 	}
 	if(protocol == "XRF"){
 		d.append(callsign);
@@ -894,6 +895,7 @@ void DudeStar::disconnect_from_host()
 		d.append(module);
 		d.append(' ');
 		d.append('\x00');
+		ping_timer->stop();
 	}
 	if(protocol == "DCS"){
 		d.append(callsign);
@@ -901,6 +903,7 @@ void DudeStar::disconnect_from_host()
 		d.append(module);
 		d.append(' ');
 		d.append('\x00');
+		ping_timer->stop();
 	}
 	else if(protocol == "XLX"){
 		d.append('R');
@@ -1360,13 +1363,29 @@ void DudeStar::process_ping()
 {
 	QByteArray out;
 	out.clear();
-	if(protocol == "XLX"){
-		char tag[] = { 'R','P','T','P','I','N','G' };
-		out.append(tag, 7);
-		out.append((dmrid >> 24) & 0xff);
-		out.append((dmrid >> 16) & 0xff);
-		out.append((dmrid >> 8) & 0xff);
-		out.append((dmrid >> 0) & 0xff);
+	if(protocol == "REF"){
+		out.append(0x03);
+		out.append(0x60);
+		out.append('\x00');
+	}
+	else if(protocol == "XRF"){
+		out.append(callsign);
+		out.append(8 - callsign.size(), ' ');
+		out.append('\x00');
+	}
+	else if(protocol == "DCS"){
+		out.append(callsign);
+		out.append(7 - callsign.size(), ' ');
+		out.append(module);
+		out.append('\x00');
+		out.append(hostname);
+		out.append('\x00');
+		out.append(module);
+		out.append(module);
+		out.append(0x0a);
+		out.append('\x00');
+		out.append(0x20);
+		out.append(0x20);
 	}
 	else if(protocol == "YSF"){
 		out.append('Y');
@@ -1390,6 +1409,14 @@ void DudeStar::process_ping()
 		out.append(10 - callsign.size(), ' ');
 	}
 	udp->writeDatagram(out, address, port);
+#ifdef DEBUG
+	fprintf(stderr, "PING: ");
+	for(int i = 0; i < out.size(); ++i){
+		fprintf(stderr, "%02x ", (unsigned char)out.data()[i]);
+	}
+	fprintf(stderr, "\n");
+	fflush(stderr);
+#endif
 }
 
 void DudeStar::readyReadYSF()
@@ -1708,6 +1735,7 @@ void DudeStar::readyReadXRF()
 		ui->callsignEdit->setEnabled(false);
 		ui->comboMod->setEnabled(false);
 		connect_status = CONNECTED_RW;
+		ping_timer->start(3000);
 		memset(rptr2, ' ', 8);
 		memcpy(rptr2, hostname.toLocal8Bit(), hostname.size());
 		rptr2[7] = module;
@@ -1719,11 +1747,6 @@ void DudeStar::readyReadXRF()
 		status_txt->setText("RW connect to " + host + ":" + QString::number(port));
 	}
 	if(buf.size() == 9){
-		out.clear();
-		out.append(callsign);
-		out.append(8 - callsign.size(), ' ');
-		out.append('\x00');
-		udp->writeDatagram(out, address, port);
 		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
 	}
 	if((buf.size() == 56) && (!memcmp(buf.data(), "DSVT", 4))) {
@@ -1835,6 +1858,7 @@ void DudeStar::readyReadDCS()
 		ui->callsignEdit->setEnabled(false);
 		ui->comboMod->setEnabled(false);
 		connect_status = CONNECTED_RW;
+		ping_timer->start(1000);
 		memset(rptr2, ' ', 8);
 		memcpy(rptr2, hostname.toLocal8Bit(), hostname.size());
 		rptr2[7] = module;
@@ -1846,18 +1870,6 @@ void DudeStar::readyReadDCS()
 		status_txt->setText("RW connect to " + host + ":" +  QString::number(port));
 	}
 	if(buf.size() == 22){
-		out.clear();
-		out.append(callsign);
-		out.append(7 - callsign.size(), ' ');
-		out.append(module);
-		out.append('\x00');
-		out.append(buf.data(), 8);
-		out.append(module);
-		out.append(0x0a);
-		out.append('\x00');
-		out.append(0x20);
-		out.append(0x20);
-		udp->writeDatagram(out, address, port);
 		status_txt->setText("Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
 	}
 	if((buf.size() >= 100) && (!memcmp(buf.data(), "0001", 4))) {
@@ -1978,12 +1990,6 @@ void DudeStar::readyReadREF()
 			s = "RO";
 		}
 		status_txt->setText(s + " Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
-		out.resize(3);
-        out[0] = 0x03;
-        out[1] = 0x60;
-        out[2] = 0x00;
-
-        udp->writeDatagram(out, address, 20001);
     }
 #ifdef DEBUG
 	if(out.size()){
@@ -2018,6 +2024,7 @@ void DudeStar::readyReadREF()
 				if(hw_ambe_present || enable_swtx){
 					ui->txButton->setDisabled(false);
 				}
+				ping_timer->start(1000);
 				status_txt->setText("RW connect to " + host);
 			}
 			else if(buf.data()[7] == 0x4f){ //OKRO -- Go get registered!
