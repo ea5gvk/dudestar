@@ -306,7 +306,7 @@ void DudeStar::http_finished(QNetworkReply *reply)
 			process_ysf_hosts();
 		}
 		else if(filename == "P25Hosts.txt"){
-			process_dmr_hosts();
+			process_p25_hosts();
 		}
 		else if(filename == "DMRHosts.txt"){
 			process_dmr_hosts();
@@ -450,7 +450,9 @@ void DudeStar::process_ref_hosts()
 					continue;
 				}
 				QStringList ll = l.split('\t');
-				ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(1) + ":20001");
+				if(ll.size() > 1){
+					ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(1) + ":20001");
+				}
 			}
 		}
 		f.close();
@@ -481,7 +483,9 @@ void DudeStar::process_dcs_hosts()
 					continue;
 				}
 				QStringList ll = l.split('\t');
-				ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(1) + ":30051");
+				if(ll.size() > 1){
+					ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(1) + ":30051");
+				}
 			}
 		}
 		f.close();
@@ -517,7 +521,9 @@ void DudeStar::process_xrf_hosts()
 					continue;
 				}
 				QStringList ll = l.split('\t');
-				ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(1) + ":30001");
+				if(ll.size() > 1){
+					ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(1) + ":30001");
+				}
 			}
 		}
 		f.close();
@@ -544,8 +550,13 @@ void DudeStar::process_ysf_hosts()
 			ui->hostCombo->clear();
 			while(!f.atEnd()){
 				QString l = f.readLine();
+				if(l.at(0) == '#'){
+					continue;
+				}
 				QStringList ll = l.split(';');
-				ui->hostCombo->addItem(ll.at(1).simplified() + " - " + ll.at(2).simplified(), ll.at(3) + ":" + ll.at(4));
+				if(ll.size() > 4){
+					ui->hostCombo->addItem(ll.at(1).simplified() + " - " + ll.at(2).simplified(), ll.at(3) + ":" + ll.at(4));
+				}
 			}
 		}
 		f.close();
@@ -576,7 +587,7 @@ void DudeStar::process_dmr_hosts()
 					continue;
 				}
 				QStringList ll = l.simplified().split(' ');
-				if(ll.size() == 5){
+				if(ll.size() > 4){
 					//qDebug() << ll.at(0).simplified() << " " <<  ll.at(2) + ":" + ll.at(4);
 					ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(2) + ":" + ll.at(4) + ":" + ll.at(3));
 				}
@@ -611,7 +622,7 @@ void DudeStar::process_p25_hosts()
 					continue;
 				}
 				QStringList ll = l.simplified().split(' ');
-				if(ll.size() == 3){
+				if(ll.size() > 2){
 					//qDebug() << ll.at(0).simplified() << " " <<  ll.at(2) + ":" + ll.at(4);
 					ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(1) + ":" + ll.at(2));
 				}
@@ -887,7 +898,6 @@ void DudeStar::disconnect_from_host()
 		d.append(0x18);
 		d.append('\x00');
 		d.append('\x00');
-		ping_timer->stop();
 	}
 	if(protocol == "XRF"){
 		d.append(callsign);
@@ -895,7 +905,6 @@ void DudeStar::disconnect_from_host()
 		d.append(module);
 		d.append(' ');
 		d.append('\x00');
-		ping_timer->stop();
 	}
 	if(protocol == "DCS"){
 		d.append(callsign);
@@ -903,7 +912,6 @@ void DudeStar::disconnect_from_host()
 		d.append(module);
 		d.append(' ');
 		d.append('\x00');
-		ping_timer->stop();
 	}
 	else if(protocol == "XLX"){
 		d.append('R');
@@ -914,7 +922,6 @@ void DudeStar::disconnect_from_host()
 		d.append((dmrid >> 16) & 0xff);
 		d.append((dmrid >> 8) & 0xff);
 		d.append((dmrid >> 0) & 0xff);
-		ping_timer->stop();
 	}
 	else if(protocol == "YSF"){
 		d.append('Y');
@@ -923,7 +930,6 @@ void DudeStar::disconnect_from_host()
 		d.append('U');
 		d.append(callsign);
 		d.append(5, ' ');
-		ping_timer->stop();
 	}
 	else if(protocol == "DMR"){
 		d.append('R');
@@ -937,14 +943,13 @@ void DudeStar::disconnect_from_host()
 		d.append((dmrid >> 0) & 0xff);
 		ui->dmrtgEdit->setEnabled(true);
 		dmr_header_timer->stop();
-		ping_timer->stop();
 	}
 	else if(protocol == "P25"){
 		d.append(0xf1);
 		d.append(callsign);
 		ui->dmrtgEdit->setEnabled(true);
-		ping_timer->stop();
 	}
+	ping_timer->stop();
 	udp->writeDatagram(d, QHostAddress(host), port);
 	//disconnect(udp, SIGNAL(readyRead()));
 	udp->disconnect();
@@ -1111,7 +1116,6 @@ void DudeStar::process_audio()
 		//return;
 	}
 	if(connect_status != CONNECTED_RW){
-	//if(!mbe){
 		return;
 	}
 
@@ -2061,7 +2065,7 @@ void DudeStar::readyReadREF()
 			ui->streamid->setText(ss);
 		}
 		else{
-			streamid = 0;
+			//streamid = 0;
 		}
     }
 	if((buf.size() == 0x1d) && (!memcmp(buf.data()+1, header, 5)) ){ //29
@@ -2576,9 +2580,9 @@ void DudeStar::transmitP25()
 		case 0x04U:
 			::memcpy(buffer, REC66, 17U);
 			::memcpy(buffer + 5U, m_p25Frame, 11U);
-			buffer[1U] = (dmr_srcid >> 16) & 0xFFU;
-			buffer[2U] = (dmr_srcid >> 8) & 0xFFU;
-			buffer[3U] = (dmr_srcid >> 0) & 0xFFU;
+			buffer[1U] = (dmrid >> 16) & 0xFFU;
+			buffer[2U] = (dmrid >> 8) & 0xFFU;
+			buffer[3U] = (dmrid >> 0) & 0xFFU;
 			txdata.append((char *)buffer, 17U);
 			++p25step;
 			break;
