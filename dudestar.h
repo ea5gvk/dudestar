@@ -17,7 +17,7 @@
 
 #ifndef DUDESTAR_H
 #define DUDESTAR_H
-#define USE_FLITE
+//#define USE_FLITE
 
 #include <QMainWindow>
 #include <QSerialPort>
@@ -27,7 +27,7 @@
 #include <QButtonGroup>
 #include <QTimer>
 #include <QLabel>
-//#ifdef USE_FLITE
+#ifdef USE_FLITE
 #include <flite/flite.h>
 #endif
 #include "mbedec.h"
