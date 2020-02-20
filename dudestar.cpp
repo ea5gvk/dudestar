@@ -1228,8 +1228,10 @@ void DudeStar::process_audio()
 			d[i] = audioq.dequeue();
 		}
 		if(hwrx){
+			ch_pkt_hdr[2] = 0x09;
+			ch_pkt_hdr[5] = 0x31;
 			ambe.append(ch_pkt_hdr, 6);
-			ambe.append(reinterpret_cast<char *>(d), 9);
+			ambe.append(reinterpret_cast<char *>(d), 7);
 			serial->write(ambe);
 		}
 		else{
@@ -1303,7 +1305,7 @@ void DudeStar::process_audio()
 		}
 		//audiodev->write(audio);
 	}
-	else if (mbe){
+	else if (mbe && !hwrx){
 		audioSamples = mbe->getAudio(nbAudioSamples);
 		audiodev->write((const char *) audioSamples, sizeof(short) * nbAudioSamples);
 		mbe->resetAudio();
