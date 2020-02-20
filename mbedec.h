@@ -31,6 +31,7 @@ public:
     void initMbeParms();
 	void process_dstar(unsigned char *d);
 	void process_dmr(unsigned char *d);
+	void process_nxdn(unsigned char *d);
 	void process_p25(unsigned char *d);
 	void ambe49to72(char ambe_data[49], char data[9]);
 	void process_frame(char ambe_fr[4][24]);

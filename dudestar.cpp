@@ -178,7 +178,7 @@ DudeStar::~DudeStar()
 	stream << "YSFHOST:" << saved_ysfhost << endl;
 	stream << "DMRHOST:" << saved_dmrhost << endl;
 	stream << "P25HOST:" << saved_p25host << endl;
-	stream << "NXDNHOST:" << saved_p25host << endl;
+	stream << "NXDNHOST:" << saved_nxdnhost << endl;
 	stream << "MODULE:" << ui->comboMod->currentText() << endl;
 	stream << "CALLSIGN:" << ui->callsignEdit->text() << endl;
 	stream << "DMRTGID:" << ui->dmrtgEdit->text() << endl;
@@ -683,7 +683,6 @@ void DudeStar::process_nxdn_hosts()
 			}
 		}
 		f.close();
-		//qDebug() << "saved_p25Host == " << saved_p25host;
 		int i = ui->hostCombo->findText(saved_nxdnhost);
 		ui->hostCombo->setCurrentIndex(i);
 		ui->hostCombo->blockSignals(false);
@@ -801,6 +800,9 @@ void DudeStar::process_settings()
 					else if(i == 5){
 						process_p25_hosts();
 					}
+					else if(i == 6){
+						process_nxdn_hosts();
+					}
 				}
 				ui->hostCombo->blockSignals(true);
 				if(sl.at(0) == "REFHOST"){
@@ -846,7 +848,7 @@ void DudeStar::process_settings()
 					}
 				}
 				if(sl.at(0) == "NXDNHOST"){
-					saved_p25host = sl.at(1).simplified();
+					saved_nxdnhost = sl.at(1).simplified();
 					if(ui->modeCombo->currentText().simplified() == "NXDN"){
 						int i = ui->hostCombo->findText(saved_nxdnhost);
 						ui->hostCombo->setCurrentIndex(i);
@@ -1220,6 +1222,20 @@ void DudeStar::process_audio()
 			mbe->process_dmr(d);
 		}
 	}
+	else if( (protocol == "NXDN") && (audioq.size() >= 7) ){
+		mbe->set_hwrx(hwrx);
+		for(int i = 0; i < 7; ++i){
+			d[i] = audioq.dequeue();
+		}
+		if(hwrx){
+			ambe.append(ch_pkt_hdr, 6);
+			ambe.append(reinterpret_cast<char *>(d), 9);
+			serial->write(ambe);
+		}
+		else{
+			mbe->process_nxdn(d);
+		}
+	}
 	else if( (protocol == "YSF") && (audioq.size() >= 9) ){
 		if(!hwrx){
 			return;
@@ -1586,6 +1602,7 @@ void DudeStar::readyReadNXDN()
 	}
 	fprintf(stderr, "\n");
 	fflush(stderr);
+#endif
 	if(buf.size() == 17){
 		if(connect_status == CONNECTING){
 			mbe = new MBEDecoder();
@@ -1603,7 +1620,33 @@ void DudeStar::readyReadNXDN()
 		}
 		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
 	}
-#endif
+	if(buf.size() == 43){
+		for(int i = 0; i < 7; ++i){
+			audioq.enqueue(buf.data()[i+15]);
+		}
+		char t[7];
+		char *d = &(buf.data()[21]);
+		for(int i = 0; i < 6; ++i){
+			t[i] = d[i] << 1;
+			t[i] |= (1 & (d[i+1] >> 7));
+		}
+		t[6] = d[6] << 1;
+		for(int i = 0; i < 7; ++i){
+			audioq.enqueue(t[i]);
+		}
+		for(int i = 0; i < 7; ++i){
+			audioq.enqueue(buf.data()[i+29]);
+		}
+		d = &(buf.data()[35]);
+		for(int i = 0; i < 6; ++i){
+			t[i] = d[i] << 1;
+			t[i] |= (1 & (d[i+1] >> 7));
+		}
+		t[6] = d[6] << 1;
+		for(int i = 0; i < 7; ++i){
+			audioq.enqueue(t[i]);
+		}
+	}
 }
 
 void DudeStar::readyReadP25()

@@ -160,6 +160,19 @@ void MBEDecoder::process_dmr(unsigned char *d)
 	processAudio();
 }
 
+void MBEDecoder::process_nxdn(unsigned char *d)
+{
+	char ambe_data[49];
+
+	for(int i = 0; i < 6; ++i){
+		for(int j = 0; j < 8; j++){
+			ambe_data[j+(8*i)] = (1 & (d[i] >> (7 - j)));
+		}
+	}
+	ambe_data[48] = (1 & (d[6] >> 7));
+	processData(ambe_data, NULL);
+}
+
 void MBEDecoder::process_p25(unsigned char *d)
 {
 	char imbe_data[88];
