@@ -84,7 +84,7 @@ DudeStar::DudeStar(QWidget *parent) :
 	hwtx = false;
 	hwrx = true;
 	muted = false;
-	enable_swtx = false;
+	enable_swtx = true;
     ui->setupUi(this);
     init_gui();
     udp = new QUdpSocket(this);
@@ -178,6 +178,7 @@ DudeStar::~DudeStar()
 	stream << "YSFHOST:" << saved_ysfhost << endl;
 	stream << "DMRHOST:" << saved_dmrhost << endl;
 	stream << "P25HOST:" << saved_p25host << endl;
+	stream << "NXDNHOST:" << saved_p25host << endl;
 	stream << "MODULE:" << ui->comboMod->currentText() << endl;
 	stream << "CALLSIGN:" << ui->callsignEdit->text() << endl;
 	stream << "DMRTGID:" << ui->dmrtgEdit->text() << endl;
@@ -252,6 +253,7 @@ void DudeStar::init_gui()
 	ui->modeCombo->addItem("YSF");
 	ui->modeCombo->addItem("DMR");
 	ui->modeCombo->addItem("P25");
+	ui->modeCombo->addItem("NXDN");
 	connect(ui->modeCombo, SIGNAL(currentTextChanged(const QString &)), this, SLOT(process_mode_change(const QString &)));
 	connect(ui->hostCombo, SIGNAL(currentTextChanged(const QString &)), this, SLOT(process_host_change(const QString &)));
 
@@ -311,6 +313,9 @@ void DudeStar::http_finished(QNetworkReply *reply)
 		else if(filename == "DMRHosts.txt"){
 			process_dmr_hosts();
 		}
+		else if(filename == "NXDNHosts.txt"){
+			process_nxdn_hosts();
+		}
 		else if(filename == "DMRIDs.dat"){
 			process_dmr_ids();
 		}
@@ -336,6 +341,9 @@ void DudeStar::process_host_change(const QString &h)
 	}
 	if(ui->modeCombo->currentText().simplified() == "P25"){
 		saved_p25host = h.simplified();
+	}
+	if(ui->modeCombo->currentText().simplified() == "NXDN"){
+		saved_nxdnhost = h.simplified();
 	}
 }
 
@@ -398,6 +406,17 @@ void DudeStar::process_mode_change(const QString &m)
 	}
 	else if(m == "P25"){
 		process_p25_hosts();
+		ui->comboMod->setEnabled(false);
+		ui->dmrtgEdit->setEnabled(true);
+		ui->label_1->setText("Callsign");
+		ui->label_2->setText("SrcID");
+		ui->label_3->setText("DestID");
+		ui->label_4->setText("GWID");
+		ui->label_5->setText("Seq#");
+		ui->label_6->setText("");
+	}
+	else if(m == "NXDN"){
+		process_nxdn_hosts();
 		ui->comboMod->setEnabled(false);
 		ui->dmrtgEdit->setEnabled(true);
 		ui->label_1->setText("Callsign");
@@ -639,6 +658,41 @@ void DudeStar::process_p25_hosts()
 	}
 }
 
+void DudeStar::process_nxdn_hosts()
+{
+	if(!QDir(config_path).exists()){
+		QDir().mkdir(config_path);
+	}
+
+	QFileInfo check_file(config_path + "/NXDNHosts.txt");
+	if(check_file.exists() && check_file.isFile()){
+		ui->hostCombo->blockSignals(true);
+		QFile f(config_path + "/NXDNHosts.txt");
+		if(f.open(QIODevice::ReadOnly)){
+			ui->hostCombo->clear();
+			while(!f.atEnd()){
+				QString l = f.readLine();
+				if(l.at(0) == '#'){
+					continue;
+				}
+				QStringList ll = l.simplified().split(' ');
+				if(ll.size() > 2){
+					//qDebug() << ll.at(0).simplified() << " " <<  ll.at(2) + ":" + ll.at(4);
+					ui->hostCombo->addItem(ll.at(0).simplified(), ll.at(1) + ":" + ll.at(2));
+				}
+			}
+		}
+		f.close();
+		//qDebug() << "saved_p25Host == " << saved_p25host;
+		int i = ui->hostCombo->findText(saved_nxdnhost);
+		ui->hostCombo->setCurrentIndex(i);
+		ui->hostCombo->blockSignals(false);
+	}
+	else{
+		start_request("/NXDNHosts.txt");
+	}
+}
+
 void DudeStar::delete_host_files()
 {
 	QFileInfo check_file(config_path + "/dplus.txt");
@@ -669,6 +723,11 @@ void DudeStar::delete_host_files()
 	check_file.setFile(config_path + "/P25Hosts.txt");
 	if(check_file.exists() && check_file.isFile()){
 		QFile f(config_path + "/P25Hosts.txt");
+		f.remove();
+	}
+	check_file.setFile(config_path + "/NXDNHosts.txt");
+	if(check_file.exists() && check_file.isFile()){
+		QFile f(config_path + "/NXDNHosts.txt");
 		f.remove();
 	}
 	process_mode_change(ui->modeCombo->currentText().simplified());
@@ -786,6 +845,13 @@ void DudeStar::process_settings()
 						ui->hostCombo->setCurrentIndex(i);
 					}
 				}
+				if(sl.at(0) == "NXDNHOST"){
+					saved_p25host = sl.at(1).simplified();
+					if(ui->modeCombo->currentText().simplified() == "NXDN"){
+						int i = ui->hostCombo->findText(saved_nxdnhost);
+						ui->hostCombo->setCurrentIndex(i);
+					}
+				}
 				if(sl.at(0) == "MODULE"){
 					ui->comboMod->setCurrentText(sl.at(1).simplified());
 				}
@@ -860,7 +926,7 @@ void DudeStar::connect_to_serial()
 					QByteArray a;
 					//a.resize(17);
 					a.clear();
-					if(protocol == "DMR"){
+					if( (protocol == "DMR") || (protocol == "NXDN") ){
 						a.append(reinterpret_cast<const char*>(AMBE3000_2450_1150), sizeof(AMBE3000_2450_1150));
 					}
 					else if(protocol == "YSF"){
@@ -949,6 +1015,11 @@ void DudeStar::disconnect_from_host()
 		d.append(callsign);
 		ui->dmrtgEdit->setEnabled(true);
 	}
+	else if(protocol == "NXDN"){
+		d.append(0xf1);
+		d.append(callsign);
+		ui->dmrtgEdit->setEnabled(true);
+	}
 	ping_timer->stop();
 	udp->writeDatagram(d, QHostAddress(host), port);
 	//disconnect(udp, SIGNAL(readyRead()));
@@ -1001,7 +1072,7 @@ void DudeStar::process_connect()
 			dmr_password = sl.at(2).simplified();
 			dmr_destid = ui->dmrtgEdit->text().toUInt();
 		}
-		if(protocol == "P25"){
+		if( (protocol == "P25") || (protocol == "NXDN") ){
 			dmrid = dmrids.key(callsign);
 			dmr_destid = ui->dmrtgEdit->text().toUInt();
 		}
@@ -1058,6 +1129,17 @@ void DudeStar::hostname_lookup(QHostInfo i)
 		d.append(0xf0);
 		d.append(callsign);
 		d.append(10 - callsign.size(), ' ');
+	}
+	else if(protocol == "NXDN"){
+		d.append('N');
+		d.append('X');
+		d.append('D');
+		d.append('N');
+		d.append('P');
+		d.append(callsign);
+		d.append(10 - callsign.size(), ' ');
+		d.append((dmr_destid >> 8) & 0xff);
+		d.append((dmr_destid >> 0) & 0xff);
 	}
 	if (!i.addresses().isEmpty()) {
 		address = i.addresses().first();
@@ -1361,6 +1443,9 @@ void DudeStar::readyRead()
 	else if (protocol == "P25"){
 		readyReadP25();
 	}
+	else if (protocol == "NXDN"){
+		readyReadNXDN();
+	}
 }
 
 void DudeStar::process_ping()
@@ -1411,6 +1496,17 @@ void DudeStar::process_ping()
 		out.append(0xf0);
 		out.append(callsign);
 		out.append(10 - callsign.size(), ' ');
+	}
+	else if(protocol == "NXDN"){
+		out.append('N');
+		out.append('X');
+		out.append('D');
+		out.append('N');
+		out.append('P');
+		out.append(callsign);
+		out.append(10 - callsign.size(), ' ');
+		out.append((dmr_destid >> 8) & 0xff);
+		out.append((dmr_destid >> 0) & 0xff);
 	}
 	udp->writeDatagram(out, address, port);
 #ifdef DEBUG
@@ -1473,6 +1569,41 @@ void DudeStar::readyReadYSF()
 			ysfq.enqueue(buf.data()[40+i]);
 		}
 	}
+}
+
+void DudeStar::readyReadNXDN()
+{
+	QByteArray buf;
+	QHostAddress sender;
+	quint16 senderPort;
+
+	buf.resize(udp->pendingDatagramSize());
+	udp->readDatagram(buf.data(), buf.size(), &sender, &senderPort);
+#ifdef DEBUG
+	fprintf(stderr, "RECV: ");
+	for(int i = 0; i < buf.size(); ++i){
+		fprintf(stderr, "%02x ", (unsigned char)buf.data()[i]);
+	}
+	fprintf(stderr, "\n");
+	fflush(stderr);
+	if(buf.size() == 17){
+		if(connect_status == CONNECTING){
+			mbe = new MBEDecoder();
+			mbe->setAutoGain(true);
+			mbeenc = new MBEEncoder();
+			mbeenc->set_49bit_mode();
+			ui->connectButton->setText("Disconnect");
+			ui->connectButton->setEnabled(true);
+			ui->modeCombo->setEnabled(false);
+			ui->hostCombo->setEnabled(false);
+			ui->callsignEdit->setEnabled(false);
+			ui->comboMod->setEnabled(false);
+			connect_status = CONNECTED_RW;
+			ping_timer->start(1000);
+		}
+		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
+	}
+#endif
 }
 
 void DudeStar::readyReadP25()
@@ -2442,6 +2573,13 @@ void DudeStar::transmit()
 	else if (protocol == "P25"){
 		transmitP25();
 	}
+	else if (protocol == "NXDN"){
+		transmitNXDN();
+	}
+}
+
+void DudeStar::transmitNXDN()
+{
 }
 
 void DudeStar::transmitYSF()

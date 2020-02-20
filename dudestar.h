@@ -17,7 +17,7 @@
 
 #ifndef DUDESTAR_H
 #define DUDESTAR_H
-//#define USE_FLITE
+#define USE_FLITE
 
 #include <QMainWindow>
 #include <QSerialPort>
@@ -59,6 +59,7 @@ private:
 	void transmitYSF();
 	void transmitDMR();
 	void transmitP25();
+	void transmitNXDN();
     void calcPFCS(char *d);
     Ui::DudeStar *ui;
 	QSerialPort *serial = nullptr;
@@ -92,6 +93,7 @@ private:
 	QString saved_ysfhost;
 	QString saved_dmrhost;
 	QString saved_p25host;
+	QString saved_nxdnhost;
     char module;
 	uint32_t dmrid;
 	uint32_t dmr_srcid;
@@ -157,6 +159,7 @@ private slots:
 	void readyReadYSF();
 	void readyReadDMR();
 	void readyReadP25();
+	void readyReadNXDN();
 	void disconnect_from_host();
     void handleStateChanged(QAudio::State);
     void hostname_lookup(QHostInfo);
@@ -175,6 +178,7 @@ private slots:
 	void process_ysf_hosts();
 	void process_dmr_hosts();
 	void process_p25_hosts();
+	void process_nxdn_hosts();
 	void delete_host_files();
 	void process_dmr_ids();
 	void update_dmr_ids();
