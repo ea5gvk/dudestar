@@ -205,7 +205,7 @@ void DudeStar::about()
                           "PARTICULAR PURPOSE. See the GNU General Public License for "
                           "more details.\n\nYou should have received a copy of the GNU "
                           "General Public License along with this program. "
-						  "If not, see <http://www.gnu.org/licenses/>").arg(VERSION_NUMBER, 10));
+						  "If not, see <http://www.gnu.org/licenses/>").arg(VERSION_NUMBER));
 }
 
 void DudeStar::init_gui()
