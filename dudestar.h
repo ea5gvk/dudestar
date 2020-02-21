@@ -133,6 +133,7 @@ private:
 	QQueue<unsigned char> swambeq;
 	QQueue<unsigned char> ysfq;
 	QMap<uint32_t, QString> dmrids;
+	QMap<uint16_t, QString> nxdnids;
     const unsigned char header[5] = {0x80,0x44,0x53,0x56,0x54}; //DVSI packet header
 #ifdef USE_FLITE
 	cst_voice *voice_slt;
@@ -182,6 +183,8 @@ private slots:
 	void delete_host_files();
 	void process_dmr_ids();
 	void update_dmr_ids();
+	void process_nxdn_ids();
+	void update_nxdn_ids();
     void process_settings();
 	void start_request(QString);
 	void http_finished(QNetworkReply *reply);
