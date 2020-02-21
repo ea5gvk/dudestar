@@ -99,7 +99,7 @@ DudeStar::DudeStar(QWidget *parent) :
 	format.setByteOrder(QAudioFormat::LittleEndian);
     format.setSampleType(QAudioFormat::SignedInt);
 	QList<QAudioDeviceInfo> devices = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
-
+	qDebug() << "Version == " << VERSION_NUMBER;
 	if(devices.size() == 0){
 		qDebug() << "No audio hardware found";
 	}
@@ -195,7 +195,7 @@ DudeStar::~DudeStar()
 void DudeStar::about()
 {
     QMessageBox::about(this, tr("About DUDE-Star"),
-                       tr("DUDE-Star v0.1-beta\nCopyright (C) 2019 Doug McLain AD8DP\n\n"
+					   tr("DUDE-Star git build %1\nCopyright (C) 2019 Doug McLain AD8DP\n\n"
                           "This program is free software; you can redistribute it"
                           "and/or modify it under the terms of the GNU General Public "
                           "License as published by the Free Software Foundation; "
@@ -205,7 +205,7 @@ void DudeStar::about()
                           "PARTICULAR PURPOSE. See the GNU General Public License for "
                           "more details.\n\nYou should have received a copy of the GNU "
                           "General Public License along with this program. "
-                          "If not, see <http://www.gnu.org/licenses/>"));
+						  "If not, see <http://www.gnu.org/licenses/>").arg(VERSION_NUMBER, 10));
 }
 
 void DudeStar::init_gui()
