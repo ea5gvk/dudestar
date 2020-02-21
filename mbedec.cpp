@@ -25,6 +25,12 @@
 #include "mbelib_parms.h"
 #include "Golay24128.h"
 
+const int MBEDecoder::dvsi_interleave[49] = {
+		0, 3, 6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 41, 43, 45, 47,
+		1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 42, 44, 46, 48,
+		2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38
+};
+
 const int MBEDecoder::dW[72] = {0,0,3,2,1,1,0,0,1,1,0,0,3,2,1,1,3,2,1,1,0,0,3,2,0,0,3,2,1,1,0,0,1,1,0,0,
                                 3,2,1,1,3,2,1,1,0,0,3,2,0,0,3,2,1,1,0,0,1,1,0,0,3,2,1,1,3,3,2,1,0,0,3,3,};
 
@@ -163,6 +169,8 @@ void MBEDecoder::process_dmr(unsigned char *d)
 void MBEDecoder::process_nxdn(unsigned char *d)
 {
 	char ambe_data[49];
+	char dvsi_data[7];
+	memset(dvsi_data, 0, 7);
 
 	for(int i = 0; i < 6; ++i){
 		for(int j = 0; j < 8; j++){
@@ -170,7 +178,16 @@ void MBEDecoder::process_nxdn(unsigned char *d)
 		}
 	}
 	ambe_data[48] = (1 & (d[6] >> 7));
-	processData(ambe_data, NULL);
+	if(m_hwrx){
+		for(int i = 0, j; i < 49; ++i){
+			j = dvsi_interleave[i];
+			dvsi_data[j/8] += (ambe_data[i])<<(7-(j%8));
+		}
+		memcpy(d, dvsi_data, 7);
+	}
+	else{
+		processData(ambe_data, NULL);
+	}
 }
 
 void MBEDecoder::process_p25(unsigned char *d)

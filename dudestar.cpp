@@ -928,16 +928,16 @@ void DudeStar::connect_to_serial()
 					QByteArray a;
 					//a.resize(17);
 					a.clear();
-					if( (protocol == "DMR") || (protocol == "NXDN") ){
+					if(protocol == "DMR"){
 						a.append(reinterpret_cast<const char*>(AMBE3000_2450_1150), sizeof(AMBE3000_2450_1150));
 					}
-					else if(protocol == "YSF"){
+					else if( (protocol == "YSF") || (protocol == "NXDN") ){
 						a.append(reinterpret_cast<const char*>(AMBE3000_2450_0000), sizeof(AMBE3000_2450_0000));
 					}
 					else if(protocol == "P25"){
 						a.append(reinterpret_cast<const char*>(AMBE2000_4400_2800), sizeof(AMBE2000_4400_2800));
 					}
-					else{
+					else{ //D-Star
 						a.append(reinterpret_cast<const char*>(AMBE2000_2400_1200), sizeof(AMBE2000_2400_1200));
 				   }
 				   int r = serial->write(a);
@@ -1227,15 +1227,13 @@ void DudeStar::process_audio()
 		for(int i = 0; i < 7; ++i){
 			d[i] = audioq.dequeue();
 		}
+		mbe->process_nxdn(d);
 		if(hwrx){
 			ch_pkt_hdr[2] = 0x09;
 			ch_pkt_hdr[5] = 0x31;
 			ambe.append(ch_pkt_hdr, 6);
 			ambe.append(reinterpret_cast<char *>(d), 7);
 			serial->write(ambe);
-		}
-		else{
-			mbe->process_nxdn(d);
 		}
 	}
 	else if( (protocol == "YSF") && (audioq.size() >= 9) ){
@@ -1623,6 +1621,8 @@ void DudeStar::readyReadNXDN()
 		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
 	}
 	if(buf.size() == 43){
+		ui->urcall->setText(QString::number((uint16_t)((buf.data()[6] << 8) & 0xff00) | (buf.data()[7] & 0xff)));
+		ui->rptr1->setText(QString::number((uint16_t)((buf.data()[8] << 8) & 0xff00) | (buf.data()[9] & 0xff)));
 		for(int i = 0; i < 7; ++i){
 			audioq.enqueue(buf.data()[i+15]);
 		}

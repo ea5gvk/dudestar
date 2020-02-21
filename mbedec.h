@@ -101,6 +101,7 @@ private:
 	static const int rY[36];
 	static const int rZ[36];
 	char ambe_d[49];
+	static const int dvsi_interleave[49];
 	bool m_hwrx;
 };
 
