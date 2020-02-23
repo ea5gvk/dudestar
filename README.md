@@ -1,7 +1,7 @@
 # DUDE-Star
 Software to RX/TX D-STAR, DMR, Fusion YSF, NXDN, and P25 reflectors and repeaters/gateways over UDP
 
-This software connects to D-STAR, Fusion, NXDN, and P25 reflectors and gateways/repeaters over UDP.  It is similar in functionality to BlueDV (except not as pretty), and is compatible with all of the AMBE3000 based USB devices out there (ThumbDV, DVstick 30, etc). If a DV dongle is detected, TX is enabled for DSTAR, DMR, and Fusion.  If no DV dongle is detected, or is in use by another instance of DUDE-Star, then it become a software AMBE decoding application, formerly known as DUDE-Star RX. This software is open source and uses the cross platform C++ library called Qt.  It will build and run on Linux, Windows, and Mac OSX.
+This software connects to D-STAR, Fusion, NXDN, and P25 reflectors and gateways/repeaters over UDP.  It is similar in functionality to BlueDV (except not as pretty), and is compatible with all of the AMBE3000 based USB devices out there (ThumbDV, DVstick 30, etc). If a compatible DV dongle is detected, TX is enabled.  If no DV dongle is detected, or is in use by another instance of DUDE-Star, then it become a software AMBE decoding application, formerly known as DUDE-Star RX. This software is open source and uses the cross platform C++ library called Qt.  It will build and run on Linux, Windows, and Mac OSX.
 
 This software makes use of software from a number of other open source software projects, including:
 
