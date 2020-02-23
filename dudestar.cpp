@@ -78,6 +78,9 @@ DudeStar::DudeStar(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::DudeStar)
 {
+	dmrslot = 2;
+	dmrcc = 1;
+	dmrcalltype = 0;
 	mbe = nullptr;
 	ysf = nullptr;
 	ping_cnt = 0;
@@ -183,6 +186,8 @@ DudeStar::~DudeStar()
 	stream << "MODULE:" << ui->comboMod->currentText() << endl;
 	stream << "CALLSIGN:" << ui->callsignEdit->text() << endl;
 	stream << "DMRTGID:" << ui->dmrtgEdit->text() << endl;
+	//stream << "DMRCC:" << ui->dmrccEdit->text() << endl;
+	//stream << "DMRSLOT:" << ui->dmrslotEdit->text() << endl;
 	stream << "MYCALL:" << ui->mycallEdit->text().simplified() << endl;
 	stream << "URCALL:" << ui->urcallEdit->text().simplified() << endl;
 	stream << "RPTR1:" << ui->rptr1Edit->text().simplified() << endl;
@@ -255,6 +260,8 @@ void DudeStar::init_gui()
 	ui->modeCombo->addItem("DMR");
 	ui->modeCombo->addItem("P25");
 	ui->modeCombo->addItem("NXDN");
+	ui->dmrccEdit->setText(QString::number(dmrcc));
+	ui->dmrslotEdit->setText(QString::number(dmrslot));
 	connect(ui->modeCombo, SIGNAL(currentTextChanged(const QString &)), this, SLOT(process_mode_change(const QString &)));
 	connect(ui->hostCombo, SIGNAL(currentTextChanged(const QString &)), this, SLOT(process_host_change(const QString &)));
 
@@ -1899,7 +1906,7 @@ void DudeStar::readyReadDMR()
 	if((buf.size() == 11) && (::memcmp(buf.data(), "MSTPONG", 7U) == 0)){
 		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
 	}
-	if((buf.size() == 55) && (::memcmp(buf.data(), "DMRD", 4U) == 0) && ((uint8_t)buf.data()[15] <= 0x90)){
+	if((buf.size() == 55) && (::memcmp(buf.data(), "DMRD", 4U) == 0) && !((uint8_t)buf.data()[15] & 0x20)){
 		uint8_t dmrframe[33];
 		uint8_t dmr3ambe[27];
 		uint8_t dmrsync[7];
@@ -2921,6 +2928,14 @@ void DudeStar::transmitDMR()
 	//static uint16_t txcnt = 0;
 	dmr_destid = ui->dmrtgEdit->text().toUInt();
 	dmr->set_dstid(dmr_destid);
+	dmr->set_cc(ui->dmrccEdit->text().toUInt());
+	dmr->set_slot(ui->dmrslotEdit->text().toUInt());
+	if(ui->checkBoxDMRPC->isChecked()){
+		dmr->set_calltype(3);
+	}
+	else{
+		dmr->set_calltype(0);
+	}
 	if(tx || ambeq.size()){
 
 		ambe.clear();

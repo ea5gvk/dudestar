@@ -98,6 +98,9 @@ private:
 	uint32_t dmrid;
 	uint32_t dmr_srcid;
 	uint32_t dmr_destid;
+	uint32_t dmrcc;
+	uint32_t dmrslot;
+	uint8_t dmrcalltype;
 	QString protocol;
 	uint64_t ping_cnt;
     MBEDecoder *mbe;

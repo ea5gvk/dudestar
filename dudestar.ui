@@ -482,7 +482,7 @@
        </size>
       </property>
       <property name="text">
-       <string>Talkgroup</string>
+       <string>TG:CC:S</string>
       </property>
      </widget>
     </item>
@@ -581,7 +581,7 @@
       </property>
      </widget>
     </item>
-    <item row="3" column="2">
+    <item row="2" column="3">
      <widget class="QCheckBox" name="checkBoxSWRX">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -594,7 +594,7 @@
       </property>
      </widget>
     </item>
-    <item row="3" column="3">
+    <item row="2" column="4">
      <widget class="QCheckBox" name="checkBoxSWTX">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -604,6 +604,39 @@
       </property>
       <property name="text">
        <string>SWTX</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="2">
+     <widget class="QLineEdit" name="dmrccEdit">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>40</width>
+        <height>16777215</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="3">
+     <widget class="QLineEdit" name="dmrslotEdit">
+      <property name="maximumSize">
+       <size>
+        <width>40</width>
+        <height>16777215</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="4">
+     <widget class="QCheckBox" name="checkBoxDMRPC">
+      <property name="text">
+       <string>Private</string>
       </property>
      </widget>
     </item>

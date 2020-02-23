@@ -30,15 +30,19 @@ public:
 	unsigned char * get_eot();
 	void set_srcid(uint32_t s){m_srcid = s;}
 	void set_dstid(uint32_t d){m_dstid = d;}
+	void set_cc(uint32_t cc){m_colorcode = cc;}
+	void set_slot(uint32_t s){m_slot = s;}
+	void set_calltype(uint8_t c){m_flco = FLCO(c);}
 private:
 	uint8_t m_dmrFrame[55];
 	uint8_t m_dataType;
 	uint32_t m_colorcode;
+	uint32_t m_slot;
 	uint32_t m_srcid;
 	uint32_t m_defsrcid;
 	uint32_t m_dstid;
 	uint32_t m_dmrcnt;
-	FLCO m_dmrflco;
+	FLCO m_flco;
 	CBPTC19696 m_bptc;
 	bool m_raw[128U];
 	bool m_data[72U];

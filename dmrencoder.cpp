@@ -39,6 +39,8 @@ DMREncoder::DMREncoder()
 {
 	m_dmrcnt = 0;
 	m_colorcode = 1;
+	m_slot = 2;
+	m_flco = FLCO(0);
 }
 
 unsigned char * DMREncoder::get_frame(unsigned char *ambe)
@@ -68,7 +70,6 @@ unsigned char * DMREncoder::get_eot()
 
 void DMREncoder::build_frame()
 {
-	int slotNo = 2;
 	m_dmrFrame[0U]  = 'D';
 	m_dmrFrame[1U]  = 'M';
 	m_dmrFrame[2U]  = 'R';
@@ -85,9 +86,8 @@ void DMREncoder::build_frame()
 	m_dmrFrame[13U]  = m_srcid >> 8;
 	m_dmrFrame[14U]  = m_srcid >> 0;
 
-	m_dmrFrame[15U] = 0x80; //slotNo == 1U ? 0x00U : 0x80U;
-
-	//m_dmrFrame[15U] |= flco == FLCO_GROUP ? 0x00U : 0x40U;
+	m_dmrFrame[15U] = (m_slot == 1U) ? 0x00U : 0x80U;
+	m_dmrFrame[15U] |= (m_flco == FLCO_GROUP) ? 0x00U : 0x40U;
 
 	if (m_dataType == DT_VOICE_SYNC) {
 		m_dmrFrame[15U] |= 0x10U;
@@ -300,11 +300,11 @@ void DMREncoder::lc_get_data(uint8_t *bytes)
 	uint8_t fid, options;
 	pf = (bytes[0U] & 0x80U) == 0x80U;
 	r  = (bytes[0U] & 0x40U) == 0x40U;
-	m_dmrflco = FLCO(bytes[0U] & 0x3FU);
+	//m_flco = FLCO(bytes[0U] & 0x3FU);
 	fid = bytes[1U];
 	options = bytes[2U];
 
-	bytes[0U] = (uint8_t)m_dmrflco;
+	bytes[0U] = (uint8_t)m_flco;
 
 	if (pf)
 		bytes[0U] |= 0x80U;
