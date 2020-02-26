@@ -27,8 +27,11 @@ public:
 private:
 	uint8_t m_nxdnframe[55];
 	uint32_t m_nxdncnt;
+	uint16_t m_srcid;
+	uint16_t m_dstid;
 	uint8_t m_lich;
 	uint8_t m_sacch[5];
+	uint8_t m_layer3[22];
 	unsigned char *m_ambe;
 
 	void build_frame();
@@ -41,6 +44,13 @@ private:
 	void set_sacch_ran(uint8_t);
 	void set_sacch_struct(uint8_t);
 	void set_sacch_data(const uint8_t *);
+	void set_layer3_msgtype(uint8_t);
+	void set_layer3_srcid(uint16_t);
+	void set_layer3_dstid(uint16_t);
+	void set_layer3_grp(bool);
+	void set_layer3_blks(uint8_t);
+	void layer3_encode(uint8_t*, uint8_t, uint8_t);
+
 	uint8_t get_lich();
 	void get_sacch(uint8_t *);
 	void encode_crc6(uint8_t *, uint8_t);
