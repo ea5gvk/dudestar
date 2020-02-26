@@ -23,8 +23,11 @@ class NXDNEncoder
 public:
 	NXDNEncoder();
 	unsigned char * get_frame(unsigned char *ambe);
-	unsigned char * get_eot();
+	unsigned char * get_eot(){m_eot = true; return get_frame(nullptr);}
+	void set_hwtx(bool hw){m_hwtx = hw;}
 private:
+	bool m_hwtx;
+	bool m_eot;
 	uint8_t m_nxdnframe[55];
 	uint32_t m_nxdncnt;
 	uint16_t m_srcid;
@@ -32,9 +35,9 @@ private:
 	uint8_t m_lich;
 	uint8_t m_sacch[5];
 	uint8_t m_layer3[22];
-	unsigned char *m_ambe;
+	uint8_t *m_ambe;
+	static const int dvsi_interleave[49];
 
-	void build_frame();
 	void encode_header();
 	void encode_data();
 	void set_lich_rfct(uint8_t);
@@ -54,6 +57,7 @@ private:
 	uint8_t get_lich();
 	void get_sacch(uint8_t *);
 	void encode_crc6(uint8_t *, uint8_t);
+	void deinterleave_ambe(uint8_t *);
 };
 
 #endif // NXDNENCODER_H

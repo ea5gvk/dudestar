@@ -17,6 +17,13 @@
 
 #include "nxdnencoder.h"
 #include <cstring>
+
+const int NXDNEncoder::dvsi_interleave[49] = {
+	0, 3, 6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 41, 43, 45, 47,
+	1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 42, 44, 46, 48,
+	2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38
+};
+
 const uint8_t NXDN_LICH_RFCT_RDCH			= 2U;
 const uint8_t NXDN_LICH_USC_SACCH_NS		= 0U;
 const uint8_t NXDN_LICH_USC_SACCH_SS		= 2U;
@@ -37,15 +44,37 @@ NXDNEncoder::NXDNEncoder()
 
 unsigned char * NXDNEncoder::get_frame(unsigned char *ambe)
 {
-	if(!m_nxdncnt){
+	memcpy(m_nxdnframe, "NXDND", 5);
+	m_nxdnframe[5U] = (m_srcid >> 8) & 0xFFU;
+	m_nxdnframe[6U] = (m_srcid >> 0) & 0xFFU;
+	m_nxdnframe[7U] = (m_dstid >> 8) & 0xFFU;
+	m_nxdnframe[8U] = (m_dstid >> 0) & 0xFFU;
+	m_nxdnframe[9U] = 0x01U;
+
+	if(!m_nxdncnt || m_eot){
 		encode_header();
 	}
 	else{
 		m_ambe = ambe;
 		encode_data();
 	}
-	build_frame();
-	++m_nxdncnt;
+	if (m_nxdnframe[10U] == 0x81U || m_nxdnframe[10U] == 0x83U) {
+		m_nxdnframe[9U] |= m_nxdnframe[15U] == 0x01U ? 0x04U : 0x00U;
+		m_nxdnframe[9U] |= m_nxdnframe[15U] == 0x08U ? 0x08U : 0x00U;
+	} else if ((m_nxdnframe[10U] & 0xF0U) == 0x90U) {
+		m_nxdnframe[9U] |= 0x02U;
+		if (m_nxdnframe[10U] == 0x90U || m_nxdnframe[10U] == 0x92U || m_nxdnframe[10U] == 0x9CU || m_nxdnframe[10U] == 0x9EU) {
+			m_nxdnframe[9U] |= m_nxdnframe[12U] == 0x09U ? 0x04U : 0x00U;
+			m_nxdnframe[9U] |= m_nxdnframe[12U] == 0x08U ? 0x08U : 0x00U;
+		}
+	}
+	if(m_eot){
+		m_nxdncnt = 0;
+		m_eot = false;
+	}
+	else{
+		++m_nxdncnt;
+	}
 	return m_nxdnframe;
 }
 
@@ -59,20 +88,24 @@ void NXDNEncoder::encode_header()
 	set_lich_fct(NXDN_LICH_USC_SACCH_NS);
 	set_lich_option(NXDN_LICH_STEAL_FACCH);
 	set_lich_dir(NXDN_LICH_DIRECTION_INBOUND);
-	m_nxdnframe[0U] = get_lich();
+	m_nxdnframe[10U] = get_lich();
 
 	set_sacch_ran(0x01);
 	set_sacch_struct(0); //Single
 	set_sacch_data(idle);
-	get_sacch(&m_nxdnframe[1U]);
-
-	set_layer3_msgtype(NXDN_MESSAGE_TYPE_VCALL);
+	get_sacch(&m_nxdnframe[11U]);
+	if(m_eot){
+		set_layer3_msgtype(NXDN_MESSAGE_TYPE_TX_REL);
+	}
+	else{
+		set_layer3_msgtype(NXDN_MESSAGE_TYPE_VCALL);
+	}
 	set_layer3_srcid(m_srcid);
 	set_layer3_dstid(m_dstid);
 	set_layer3_grp(true);
 	set_layer3_blks(0U);
-	memcpy(&m_nxdnframe[5U], m_layer3, 14U);
-	memcpy(&m_nxdnframe[19U], m_layer3, 14U);
+	memcpy(&m_nxdnframe[15U], m_layer3, 14U);
+	memcpy(&m_nxdnframe[29U], m_layer3, 14U);
 }
 
 void NXDNEncoder::encode_data()
@@ -85,7 +118,9 @@ void NXDNEncoder::encode_data()
 	set_lich_fct(NXDN_LICH_USC_SACCH_SS);
 	set_lich_option(NXDN_LICH_STEAL_NONE);
 	set_lich_dir(NXDN_LICH_DIRECTION_INBOUND);
-	m_nxdnframe[0U] = get_lich();
+	m_nxdnframe[10U] = get_lich();
+
+	set_sacch_ran(0x01);
 
 	set_layer3_msgtype(NXDN_MESSAGE_TYPE_VCALL);
 	set_layer3_srcid(m_srcid);
@@ -115,11 +150,46 @@ void NXDNEncoder::encode_data()
 		set_sacch_data(msg);
 		break;
 	}
+	get_sacch(&m_nxdnframe[11U]);
+
+	if(m_hwtx){
+		for(int i = 0; i < 4; ++i){
+			deinterleave_ambe(&m_ambe[7*i]);
+		}
+	}
+
+	memcpy(&m_nxdnframe[15], m_ambe, 7);
+	for(int i = 0; i < 7; ++i){
+		m_nxdnframe[21+i] |= (m_ambe[7+i] >> 1);
+		m_nxdnframe[22+i] = (m_ambe[7+i] & 1) << 7;
+	}
+	m_nxdnframe[28] |= (m_ambe[13] >> 2);
+
+	memcpy(&m_nxdnframe[29], &m_ambe[14], 7);
+	for(int i = 0; i < 7; ++i){
+		m_nxdnframe[35+i] |= (m_ambe[21+i] >> 1);
+		m_nxdnframe[36+i] = (m_ambe[21+i] & 1) << 7;
+	}
+	m_nxdnframe[41] |= (m_ambe[27] >> 2);
 }
 
-void NXDNEncoder::build_frame()
+void NXDNEncoder::deinterleave_ambe(uint8_t *d)
 {
+	uint8_t dvsi_data[49];
+	uint8_t ambe_data[7];
+	for(int i = 0; i < 6; ++i){
+		for(int j = 0; j < 8; j++){
+			dvsi_data[j+(8*i)] = (1 & (d[i] >> (7 - j)));
+		}
+	}
+	dvsi_data[48] = (1 & (d[6] >> 7));
 
+	for(int i = 0, j; i < 49; ++i){
+		j = dvsi_interleave[i];
+		//ambe_data[j/8] += (dvsi_data[i])<<(7-(j%8));
+		ambe_data[i/8] += (dvsi_data[j])<<(7-(i%8));
+	}
+	memcpy(d, dvsi_data, 7);
 }
 
 void NXDNEncoder::set_lich_rfct(uint8_t rfct)
