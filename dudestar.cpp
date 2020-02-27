@@ -164,8 +164,8 @@ DudeStar::DudeStar(QWidget *parent) :
 	connect(ping_timer, SIGNAL(timeout()), this, SLOT(process_ping()));
 	connect(ysftimer, SIGNAL(timeout()), this, SLOT(process_ysf_data()));
 
-	audiotimer->start(19);
-	ysftimer->start(90);
+	//audiotimer->start(19);
+	//ysftimer->start(90);
 	process_dmr_ids();
 	process_nxdn_ids();
 	//process_settings();
@@ -363,6 +363,9 @@ void DudeStar::process_mode_change(const QString &m)
 		process_ref_hosts();
 		ui->comboMod->setEnabled(true);
 		ui->dmrtgEdit->setEnabled(false);
+		ui->dmrccEdit->setEnabled(false);
+		ui->dmrslotEdit->setEnabled(false);
+		ui->checkBoxDMRPC->setEnabled(false);
 		ui->label_1->setText("MYCALL");
 		ui->label_2->setText("URCALL");
 		ui->label_3->setText("RPTR1");
@@ -374,6 +377,9 @@ void DudeStar::process_mode_change(const QString &m)
 		process_dcs_hosts();
 		ui->comboMod->setEnabled(true);
 		ui->dmrtgEdit->setEnabled(false);
+		ui->dmrccEdit->setEnabled(false);
+		ui->dmrslotEdit->setEnabled(false);
+		ui->checkBoxDMRPC->setEnabled(false);
 		ui->label_1->setText("MYCALL");
 		ui->label_2->setText("URCALL");
 		ui->label_3->setText("RPTR1");
@@ -385,6 +391,9 @@ void DudeStar::process_mode_change(const QString &m)
 		process_xrf_hosts();
 		ui->comboMod->setEnabled(true);
 		ui->dmrtgEdit->setEnabled(false);
+		ui->dmrccEdit->setEnabled(false);
+		ui->dmrslotEdit->setEnabled(false);
+		ui->checkBoxDMRPC->setEnabled(false);
 		ui->label_1->setText("MYCALL");
 		ui->label_2->setText("URCALL");
 		ui->label_3->setText("RPTR1");
@@ -396,6 +405,9 @@ void DudeStar::process_mode_change(const QString &m)
 		process_ysf_hosts();
 		ui->comboMod->setEnabled(false);
 		ui->dmrtgEdit->setEnabled(false);
+		ui->dmrccEdit->setEnabled(false);
+		ui->dmrslotEdit->setEnabled(false);
+		ui->checkBoxDMRPC->setEnabled(false);
 		ui->label_1->setText("Gateway");
 		ui->label_2->setText("Callsign");
 		ui->label_3->setText("Dest");
@@ -407,6 +419,9 @@ void DudeStar::process_mode_change(const QString &m)
 		process_dmr_hosts();
 		ui->comboMod->setEnabled(false);
 		ui->dmrtgEdit->setEnabled(true);
+		ui->dmrccEdit->setEnabled(true);
+		ui->dmrslotEdit->setEnabled(true);
+		ui->checkBoxDMRPC->setEnabled(true);
 		ui->label_1->setText("Callsign");
 		ui->label_2->setText("SrcID");
 		ui->label_3->setText("DestID");
@@ -417,7 +432,10 @@ void DudeStar::process_mode_change(const QString &m)
 	else if(m == "P25"){
 		process_p25_hosts();
 		ui->comboMod->setEnabled(false);
-		ui->dmrtgEdit->setEnabled(true);
+		ui->dmrtgEdit->setEnabled(false);
+		ui->dmrccEdit->setEnabled(false);
+		ui->dmrslotEdit->setEnabled(false);
+		ui->checkBoxDMRPC->setEnabled(false);
 		ui->label_1->setText("Callsign");
 		ui->label_2->setText("SrcID");
 		ui->label_3->setText("DestID");
@@ -429,6 +447,9 @@ void DudeStar::process_mode_change(const QString &m)
 		process_nxdn_hosts();
 		ui->comboMod->setEnabled(false);
 		ui->dmrtgEdit->setEnabled(false);
+		ui->dmrccEdit->setEnabled(false);
+		ui->dmrslotEdit->setEnabled(false);
+		ui->checkBoxDMRPC->setEnabled(false);
 		ui->label_1->setText("Callsign");
 		ui->label_2->setText("SrcID");
 		ui->label_3->setText("DestID");
@@ -1100,13 +1121,20 @@ void DudeStar::process_connect()
 		ui->modeCombo->setEnabled(true);
         ui->hostCombo->setEnabled(true);
         ui->callsignEdit->setEnabled(true);
+
 		if((protocol == "DCS") || (protocol == "XRF")){
 			ui->comboMod->setEnabled(true);
 		}
+
 		disconnect_from_host();
+
 		if(hw_ambe_present){
 			serial->close();
 		}
+		audiotimer->stop();
+		ysftimer->stop();
+		audioq.clear();
+		ysfq.clear();
 		ping_cnt = 0;
 		ui->txButton->setDisabled(true);
 		status_txt->setText("Not connected");
@@ -1627,6 +1655,8 @@ void DudeStar::readyReadYSF()
 			ui->callsignEdit->setEnabled(false);
 			ui->comboMod->setEnabled(false);
 			connect_status = CONNECTED_RW;
+			ysftimer->start(90);
+			audiotimer->start(19);
 			ping_timer->start(5000);
 			if(hw_ambe_present || enable_swtx){
 				ui->txButton->setDisabled(false);
@@ -1683,7 +1713,7 @@ void DudeStar::readyReadNXDN()
 			if(hw_ambe_present || enable_swtx){
 				ui->txButton->setDisabled(false);
 			}
-
+			audiotimer->start(19);
 			ping_timer->start(1000);
 		}
 		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
@@ -1752,6 +1782,7 @@ void DudeStar::readyReadP25()
 			ui->callsignEdit->setEnabled(false);
 			ui->comboMod->setEnabled(false);
 			connect_status = CONNECTED_RW;
+			audiotimer->start(19);
 			ping_timer->start(5000);
 			if(enable_swtx){
 				ui->txButton->setDisabled(false);
@@ -1900,6 +1931,7 @@ void DudeStar::readyReadDMR()
 			ui->hostCombo->setEnabled(false);
 			ui->callsignEdit->setEnabled(false);
 			//ui->dmrtgEdit->setEnabled(false);
+			audiotimer->start(19);
 			ping_timer->start(5000);
 			if(hw_ambe_present || enable_swtx){
 				ui->txButton->setDisabled(false);
@@ -1986,6 +2018,7 @@ void DudeStar::readyReadXRF()
 		ui->callsignEdit->setEnabled(false);
 		ui->comboMod->setEnabled(false);
 		connect_status = CONNECTED_RW;
+		audiotimer->start(19);
 		ping_timer->start(3000);
 		memset(rptr2, ' ', 8);
 		memcpy(rptr2, hostname.toLocal8Bit(), hostname.size());
@@ -2109,6 +2142,7 @@ void DudeStar::readyReadDCS()
 		ui->callsignEdit->setEnabled(false);
 		ui->comboMod->setEnabled(false);
 		connect_status = CONNECTED_RW;
+		audiotimer->start(19);
 		ping_timer->start(1000);
 		memset(rptr2, ' ', 8);
 		memcpy(rptr2, hostname.toLocal8Bit(), hostname.size());
@@ -2275,6 +2309,7 @@ void DudeStar::readyReadREF()
 				if(hw_ambe_present || enable_swtx){
 					ui->txButton->setDisabled(false);
 				}
+				audiotimer->start(19);
 				ping_timer->start(1000);
 				status_txt->setText("RW connect to " + host);
 			}
