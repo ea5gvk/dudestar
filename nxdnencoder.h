@@ -25,6 +25,8 @@ public:
 	unsigned char * get_frame(unsigned char *ambe);
 	unsigned char * get_eot(){m_eot = true; return get_frame(nullptr);}
 	void set_hwtx(bool hw){m_hwtx = hw;}
+	void set_srcid(uint16_t src){m_srcid = src;}
+	void set_dstid(uint16_t dst){m_dstid = dst;}
 private:
 	bool m_hwtx;
 	bool m_eot;
@@ -36,7 +38,6 @@ private:
 	uint8_t m_sacch[5];
 	uint8_t m_layer3[22];
 	uint8_t *m_ambe;
-	static const int dvsi_interleave[49];
 
 	void encode_header();
 	void encode_data();

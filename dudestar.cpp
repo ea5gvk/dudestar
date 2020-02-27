@@ -432,7 +432,7 @@ void DudeStar::process_mode_change(const QString &m)
 		ui->label_1->setText("Callsign");
 		ui->label_2->setText("SrcID");
 		ui->label_3->setText("DestID");
-		ui->label_4->setText("GWID");
+		ui->label_4->setText("");
 		ui->label_5->setText("Seq#");
 		ui->label_6->setText("");
 	}
@@ -1135,6 +1135,7 @@ void DudeStar::process_connect()
 			dmr_destid = ui->dmrtgEdit->text().toUInt();
 		}
 		if(protocol == "NXDN"){
+			dmrid = nxdnids.key(callsign);
 			dmr_destid = ui->hostCombo->currentText().toUInt();
 		}
 		connect_to_serial();
@@ -1651,6 +1652,7 @@ void DudeStar::readyReadNXDN()
 	QByteArray buf;
 	QHostAddress sender;
 	quint16 senderPort;
+	static uint8_t cnt = 0;
 
 	buf.resize(udp->pendingDatagramSize());
 	udp->readDatagram(buf.data(), buf.size(), &sender, &senderPort);
@@ -1664,6 +1666,7 @@ void DudeStar::readyReadNXDN()
 #endif
 	if(buf.size() == 17){
 		if(connect_status == CONNECTING){
+			nxdn = new NXDNEncoder();
 			mbe = new MBEDecoder();
 			mbe->setAutoGain(true);
 			mbeenc = new MBEEncoder();
@@ -1675,15 +1678,22 @@ void DudeStar::readyReadNXDN()
 			ui->callsignEdit->setEnabled(false);
 			ui->comboMod->setEnabled(false);
 			connect_status = CONNECTED_RW;
+			nxdn->set_srcid(dmrid);
+			nxdn->set_dstid(dmr_destid);
+			if(hw_ambe_present || enable_swtx){
+				ui->txButton->setDisabled(false);
+			}
+
 			ping_timer->start(1000);
 		}
 		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
 	}
 	if(buf.size() == 43){
-		uint16_t id = (uint16_t)((buf.data()[6] << 8) & 0xff00) | (buf.data()[7] & 0xff);
+		uint16_t id = (uint16_t)((buf.data()[5] << 8) & 0xff00) | (buf.data()[6] & 0xff);
 		ui->mycall->setText(nxdnids[id]);
 		ui->urcall->setText(QString::number(id));
-		ui->rptr1->setText(QString::number((uint16_t)((buf.data()[8] << 8) & 0xff00) | (buf.data()[9] & 0xff)));
+		ui->rptr1->setText(QString::number((uint16_t)((buf.data()[7] << 8) & 0xff00) | (buf.data()[8] & 0xff)));
+		ui->streamid->setText(QString::number((cnt++ % 16), 16));
 		for(int i = 0; i < 7; ++i){
 			audioq.enqueue(buf.data()[i+15]);
 		}
@@ -2547,6 +2557,9 @@ void DudeStar::tx_timer()
 			if(protocol == "YSF"){
 				ysf->use_hwambe(true);
 			}
+			if(protocol == "NXDN"){
+				nxdn->set_hwtx(true);
+			}
 			serial->write(a);
 		}
 		else{
@@ -2556,7 +2569,7 @@ void DudeStar::tx_timer()
 			}
 			else{
 				mbeenc->encode(audio_samples, ambe_frame);
-				if(protocol == "YSF"){
+				if((protocol == "YSF") || (protocol == "NXDN")){
 					frame_len = 7;
 				}
 				else{
@@ -2589,6 +2602,9 @@ void DudeStar::tx_timer()
 							if(protocol == "YSF"){
 								ysf->use_hwambe(false);
 							}
+							if(protocol == "NXDN"){
+								nxdn->set_hwtx(false);
+							}
 							ambe_bytes[i] |= (ambe_frame[(i*8)+j] << (7-j));
 						}
 					}
@@ -2605,6 +2621,10 @@ void DudeStar::tx_timer()
 		}
 	}
 	if((protocol == "YSF") && (cnt == 5)){
+		transmit();
+		cnt = 0;
+	}
+	else if((protocol == "NXDN") && (cnt == 4)){
 		transmit();
 		cnt = 0;
 	}
@@ -2686,6 +2706,66 @@ void DudeStar::transmit()
 
 void DudeStar::transmitNXDN()
 {
+	QByteArray ambe;
+	QByteArray txdata;
+	unsigned char *temp_nxdn;
+	static uint16_t txcnt = 0;
+	if(tx || ambeq.size()){
+
+		ambe.clear();
+		if(ambeq.size() < 55){
+			if(!tx){
+				ambeq.clear();
+				return;
+			}
+			else{
+				std::cerr << "ERROR: NXDN AMBEQ < 55" << std::endl;
+				return;
+			}
+		}
+		while(ambeq.size() && (ambeq[0] != 0x61) && (ambeq[3] != 0x01)){
+			std::cerr << "ERROR: Not an AMBE frame" << std::endl;
+			ambeq.dequeue();
+		}
+		for(int i = 0; i < 5; ++i){
+			if(ambeq.size() < 13){
+				std::cerr << "ERROR: NXDN AMBE Q empty" << std::endl;
+				return;
+			}
+			else{
+				for (int i = 0; i < 6; ++i){
+					ambeq.dequeue();
+				}
+				for (int i = 0; i < 7; ++i){
+					ambe.append(ambeq.dequeue());
+				}
+				//ambe.append('\x00');
+				//ambe.append('\x00');
+			}
+		}
+		temp_nxdn = nxdn->get_frame((unsigned char *)ambe.data());
+
+		txdata.append((char *)temp_nxdn, 43);
+		udp->writeDatagram(txdata, address, port);
+
+		fprintf(stderr, "SEND:%d: ", ambeq.size());
+		for(int i = 0; i < txdata.size(); ++i){
+			fprintf(stderr, "%02x ", (unsigned char)txdata.data()[i]);
+		}
+		fprintf(stderr, "\n");
+		fflush(stderr);
+	}
+	else{
+		fprintf(stderr, "NXDN TX stopped\n");
+		txtimer->stop();
+		audioindev->disconnect();
+		audioin->stop();
+		txcnt = 0;
+		temp_nxdn = nxdn->get_eot();
+		txdata.append((char *)temp_nxdn, 43);
+		udp->writeDatagram(txdata, address, port);
+	}
+
 }
 
 void DudeStar::transmitYSF()

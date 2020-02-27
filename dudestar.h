@@ -36,6 +36,7 @@
 #include "ysfenc.h"
 #include "dmrencoder.h"
 #include "p25encoder.h"
+#include "nxdnencoder.h"
 
 
 namespace Ui {
@@ -109,6 +110,7 @@ private:
 	DSDYSF *ysfdec;
 	DMREncoder *dmr;
 	p25encoder *p25;
+	NXDNEncoder *nxdn;
     QAudioOutput *audio;
 	QAudioInput *audioin;
 	QBuffer audio_buffer;

@@ -18,12 +18,18 @@
 #include "nxdnencoder.h"
 #include <cstring>
 
-const int NXDNEncoder::dvsi_interleave[49] = {
+const int dvsi_interleave[49] = {
 	0, 3, 6,  9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 41, 43, 45, 47,
 	1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 42, 44, 46, 48,
 	2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38
 };
-
+/*
+const int dvsi_deinterleave[49] = {
+		0, 18, 36,  1, 19, 37, 2, 20, 38, 3, 21, 39, 4, 22, 40, 5, 23, 41,
+		6, 24, 42, 7, 25, 43, 8, 26, 44, 9, 27, 45, 10, 28, 46, 11, 29, 47,
+		12, 30, 48, 13, 31, 14, 32, 15, 33, 16, 34, 17, 35
+};
+*/
 const uint8_t NXDN_LICH_RFCT_RDCH			= 2U;
 const uint8_t NXDN_LICH_USC_SACCH_NS		= 0U;
 const uint8_t NXDN_LICH_USC_SACCH_SS		= 2U;
@@ -40,9 +46,11 @@ const unsigned char BIT_MASK_TABLE[] = { 0x80U, 0x40U, 0x20U, 0x10U, 0x08U, 0x04
 NXDNEncoder::NXDNEncoder()
 {
 	m_nxdncnt = 0;
+	m_srcid = 12065;
+	m_dstid = 26000;
 }
 
-unsigned char * NXDNEncoder::get_frame(unsigned char *ambe)
+uint8_t * NXDNEncoder::get_frame(uint8_t *ambe)
 {
 	memcpy(m_nxdnframe, "NXDND", 5);
 	m_nxdnframe[5U] = (m_srcid >> 8) & 0xFFU;
@@ -61,7 +69,8 @@ unsigned char * NXDNEncoder::get_frame(unsigned char *ambe)
 	if (m_nxdnframe[10U] == 0x81U || m_nxdnframe[10U] == 0x83U) {
 		m_nxdnframe[9U] |= m_nxdnframe[15U] == 0x01U ? 0x04U : 0x00U;
 		m_nxdnframe[9U] |= m_nxdnframe[15U] == 0x08U ? 0x08U : 0x00U;
-	} else if ((m_nxdnframe[10U] & 0xF0U) == 0x90U) {
+	}
+	else if ((m_nxdnframe[10U] & 0xF0U) == 0x90U) {
 		m_nxdnframe[9U] |= 0x02U;
 		if (m_nxdnframe[10U] == 0x90U || m_nxdnframe[10U] == 0x92U || m_nxdnframe[10U] == 0x9CU || m_nxdnframe[10U] == 0x9EU) {
 			m_nxdnframe[9U] |= m_nxdnframe[12U] == 0x09U ? 0x04U : 0x00U;
@@ -177,6 +186,8 @@ void NXDNEncoder::deinterleave_ambe(uint8_t *d)
 {
 	uint8_t dvsi_data[49];
 	uint8_t ambe_data[7];
+	memset(ambe_data, 0, 7);
+
 	for(int i = 0; i < 6; ++i){
 		for(int j = 0; j < 8; j++){
 			dvsi_data[j+(8*i)] = (1 & (d[i] >> (7 - j)));
@@ -186,10 +197,11 @@ void NXDNEncoder::deinterleave_ambe(uint8_t *d)
 
 	for(int i = 0, j; i < 49; ++i){
 		j = dvsi_interleave[i];
-		//ambe_data[j/8] += (dvsi_data[i])<<(7-(j%8));
 		ambe_data[i/8] += (dvsi_data[j])<<(7-(i%8));
+		//j = dvsi_deinterleave[i];
+		//ambe_data[j/8] += (dvsi_data[i])<<(7-(j%8));
 	}
-	memcpy(d, dvsi_data, 7);
+	memcpy(d, ambe_data, 7);
 }
 
 void NXDNEncoder::set_lich_rfct(uint8_t rfct)
