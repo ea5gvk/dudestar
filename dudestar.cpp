@@ -88,7 +88,7 @@ DudeStar::DudeStar(QWidget *parent) :
 	hwtx = false;
 	hwrx = true;
 	muted = false;
-	enable_swtx = true;
+	enable_swtx = false;
     ui->setupUi(this);
     init_gui();
     udp = new QUdpSocket(this);
@@ -1821,9 +1821,7 @@ void DudeStar::readyReadP25()
 			connect_status = CONNECTED_RW;
 			audiotimer->start(19);
 			ping_timer->start(5000);
-			if(enable_swtx){
-				ui->txButton->setDisabled(false);
-			}
+			ui->txButton->setDisabled(false);
 		}
 		status_txt->setText(" Host: " + host + ":" + QString::number(port) + " Ping: " + QString::number(ping_cnt++));
 	}
