@@ -859,7 +859,6 @@ void DudeStar::process_nxdn_ids()
 			}
 		}
 		f.close();
-		process_settings();
 	}
 	else{
 		start_request("/NXDN.csv");
@@ -886,8 +885,11 @@ void DudeStar::process_settings()
 				QString s = f.readLine();
 				QStringList sl = s.split(':');
 				if(sl.at(0) == "MODE"){
+					ui->modeCombo->blockSignals(true);
 					int i = ui->modeCombo->findText(sl.at(1).simplified());
 					ui->modeCombo->setCurrentIndex(i);
+					process_mode_change(sl.at(1).simplified());
+
 					if(i == 0){
 						process_ref_hosts();
 					}
@@ -910,6 +912,7 @@ void DudeStar::process_settings()
 						process_nxdn_hosts();
 					}
 				}
+				ui->modeCombo->blockSignals(false);
 				ui->hostCombo->blockSignals(true);
 				if(sl.at(0) == "REFHOST"){
 					saved_refhost = sl.at(1).simplified();
@@ -1121,7 +1124,6 @@ void DudeStar::disconnect_from_host()
 	else if(protocol == "P25"){
 		d.append(0xf1);
 		d.append(callsign);
-		ui->dmrtgEdit->setEnabled(true);
 	}
 	else if(protocol == "NXDN"){
 		d.append('N');
@@ -1195,7 +1197,7 @@ void DudeStar::process_connect()
 		}
 		if(protocol == "P25"){
 			dmrid = dmrids.key(callsign);
-			dmr_destid = ui->dmrtgEdit->text().toUInt();
+			dmr_destid = ui->hostCombo->currentText().toUInt();
 		}
 		if(protocol == "NXDN"){
 			dmrid = nxdnids.key(callsign);
