@@ -661,7 +661,7 @@ void MBEEncoder::encode(int16_t samples[], uint8_t codeword[])
 	// first do speech analysis to generate mbe model parameters
 	vocoder.imbe_encode(frame_vector, samples);
 	if(d_88bit_mode){
-		vocoder.set_gain_adjust(1.0);
+		//vocoder.set_gain_adjust(1.0);
 		unsigned int offset = 0U;
 		int16_t mask = 0x0800;
 		for (unsigned int i = 0U; i < 12U; i++, mask >>= 1, offset++)

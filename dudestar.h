@@ -74,6 +74,8 @@ private:
 		CONNECTED_RW,
 		CONNECTED_RO
 	} connect_status;
+	uint16_t usb_pid;
+	uint16_t usb_vid;
 	QLabel *status_txt;
 	QUrl hosts_site;
 	QNetworkAccessManager qnam;
@@ -125,6 +127,7 @@ private:
 	QTimer *ping_timer;
 	QTimer *dmr_header_timer;
 	bool muted;
+	bool input_muted;
 	bool tx;
 	bool hwtx;
 	bool hwrx;
@@ -172,6 +175,8 @@ private slots:
     void process_audio();
 	void process_mute_button();
 	void process_volume_changed(int);
+	void process_input_volume_changed(int);
+	void process_input_mute_button();
 	void audioin_data_ready();
 	void process_ping();
     void press_tx();

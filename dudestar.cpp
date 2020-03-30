@@ -236,6 +236,8 @@ void DudeStar::init_gui()
 	ui->checkBoxTTSOff->setCheckState(Qt::Checked);
 	ui->volumeSlider->setRange(0, 100);
 	ui->volumeSlider->setValue(100);
+	ui->involSlider->setRange(0, 100);
+	ui->involSlider->setValue(100);
 	ui->txButton->setDisabled(true);
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(close()));
@@ -246,6 +248,8 @@ void DudeStar::init_gui()
     connect(ui->txButton, SIGNAL(released()), this, SLOT(release_tx()));
 	connect(ui->muteButton, SIGNAL(clicked()), this, SLOT(process_mute_button()));
 	connect(ui->volumeSlider, SIGNAL(valueChanged(int)), this, SLOT(process_volume_changed(int)));
+	connect(ui->inmuteButton, SIGNAL(clicked()), this, SLOT(process_input_mute_button()));
+	connect(ui->involSlider, SIGNAL(valueChanged(int)), this, SLOT(process_input_volume_changed(int)));
 	ui->statusBar->insertPermanentWidget(0, status_txt, 1);
 	connect(ui->checkBoxSWRX, SIGNAL(stateChanged(int)), this, SLOT(swrx_state_changed(int)));
 	connect(ui->checkBoxSWTX, SIGNAL(stateChanged(int)), this, SLOT(swtx_state_changed(int)));
@@ -993,6 +997,7 @@ void DudeStar::process_settings()
 						ui->checkBoxSWTX->show();
 					}
 				}
+
 				ui->hostCombo->blockSignals(false);
 			}
 		}
@@ -1023,7 +1028,7 @@ void DudeStar::connect_to_serial()
 			serialNumber = serialPortInfo.serialNumber();
 			//out << "Port: " << serialPortInfo.portName() << endl << "Location: " << serialPortInfo.systemLocation() << endl << "Description: " << (!description.isEmpty() ? description : blankString) << endl << "Manufacturer: " << (!manufacturer.isEmpty() ? manufacturer : blankString) << endl << "Serial number: " << (!serialNumber.isEmpty() ? serialNumber : blankString) << endl << "Vendor Identifier: " << (serialPortInfo.hasVendorIdentifier() ? QByteArray::number(serialPortInfo.vendorIdentifier(), 16) : blankString) << endl << "Product Identifier: " << (serialPortInfo.hasProductIdentifier() ? QByteArray::number(serialPortInfo.productIdentifier(), 16) : blankString) << endl << "Busy: " << (serialPortInfo.isBusy() ? "Yes" : "No") << endl;
 			//if((serialPortInfo.vendorIdentifier() == 0x0483) && (serialPortInfo.productIdentifier() == 0x5740)){
-			if((protocol != "P25") && (serialPortInfo.vendorIdentifier() == 0x0403) && (serialPortInfo.productIdentifier() == 0x6015)){ //DV Dongle
+			if((protocol != "P25") && (serialPortInfo.vendorIdentifier() == 0x0403) && (serialPortInfo.productIdentifier() >= 0x6010)){
 				serial = new QSerialPort;
 				serial->setPortName(serialPortInfo.portName());
 				serial->setBaudRate(460800);
@@ -1306,6 +1311,31 @@ void DudeStar::process_mute_button()
 		muted = true;
 		ui->muteButton->setText("Unmute");
 		audio->setVolume(0.0);
+	}
+}
+
+void DudeStar::process_input_volume_changed(int v)
+{
+	qreal linear_vol = QAudio::convertVolume(v / qreal(100.0),QAudio::LogarithmicVolumeScale,QAudio::LinearVolumeScale);
+	if(!input_muted){
+		audioin->setVolume(linear_vol);
+	}
+	//qDebug("volume == %d : %4.2f", v, linear_vol);
+}
+
+void DudeStar::process_input_mute_button()
+{
+	int v = ui->volumeSlider->value();
+	qreal linear_vol = QAudio::convertVolume(v / qreal(100.0),QAudio::LogarithmicVolumeScale,QAudio::LinearVolumeScale);
+	if(input_muted){
+		input_muted = false;
+		ui->inmuteButton->setText("Mute");
+		audioin->setVolume(linear_vol);
+	}
+	else{
+		input_muted = true;
+		ui->inmuteButton->setText("Unmute");
+		audioin->setVolume(0.0);
 	}
 }
 
@@ -1670,7 +1700,7 @@ void DudeStar::readyReadYSF()
 	buf.resize(udp->pendingDatagramSize());
 	udp->readDatagram(buf.data(), buf.size(), &sender, &senderPort);
 #ifdef DEBUG_YSF
-	//fprintf(stderr, "RECV: ");
+	fprintf(stderr, "RECV: ");
 	for(int i = 0; i < buf.size(); ++i){
 		fprintf(stderr, "%02x ", (unsigned char)buf.data()[i]);
 	}
@@ -2912,6 +2942,8 @@ void DudeStar::transmitP25()
 
 	if(ambeq.size() < 17){
 		if(!tx){
+			txdata.append((char *)REC80, 17U);
+			udp->writeDatagram(txdata, address, port);
 			fprintf(stderr, "P25 TX stopped ambeq.size() == %d\n", ambeq.size());
 			txtimer->stop();
 			audioindev->disconnect();
@@ -3068,6 +3100,8 @@ void DudeStar::transmitP25()
 		udp->writeDatagram(txdata, address, port);
 	}
 	else{
+		txdata.append((char *)REC80, 17U);
+		udp->writeDatagram(txdata, address, port);
 		fprintf(stderr, "P25 TX stopped\n");
 		txtimer->stop();
 		audioindev->disconnect();
@@ -3631,7 +3665,7 @@ void DudeStar::transmitREF()
 		memcpy(txdata.data() + 28, rptr1.toLocal8Bit().data(), 8);
 		memcpy(txdata.data() + 36, urcall.toLocal8Bit().data(), 8);
 		memcpy(txdata.data() + 44, mycall.toLocal8Bit().data(), 8);
-		memcpy(txdata.data() + 52, "51a+", 4);
+		memcpy(txdata.data() + 52, "dude", 4);
         txdata[56] = 0;
         txdata[57] = 0;
         calcPFCS(txdata.data());
