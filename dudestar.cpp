@@ -1028,7 +1028,7 @@ void DudeStar::connect_to_serial()
 			serialNumber = serialPortInfo.serialNumber();
 			//out << "Port: " << serialPortInfo.portName() << endl << "Location: " << serialPortInfo.systemLocation() << endl << "Description: " << (!description.isEmpty() ? description : blankString) << endl << "Manufacturer: " << (!manufacturer.isEmpty() ? manufacturer : blankString) << endl << "Serial number: " << (!serialNumber.isEmpty() ? serialNumber : blankString) << endl << "Vendor Identifier: " << (serialPortInfo.hasVendorIdentifier() ? QByteArray::number(serialPortInfo.vendorIdentifier(), 16) : blankString) << endl << "Product Identifier: " << (serialPortInfo.hasProductIdentifier() ? QByteArray::number(serialPortInfo.productIdentifier(), 16) : blankString) << endl << "Busy: " << (serialPortInfo.isBusy() ? "Yes" : "No") << endl;
 			//if((serialPortInfo.vendorIdentifier() == 0x0483) && (serialPortInfo.productIdentifier() == 0x5740)){
-			if((protocol != "P25") && (serialPortInfo.vendorIdentifier() == 0x0403) && (serialPortInfo.productIdentifier() >= 0x6010)){
+			if((protocol != "P25") && (serialPortInfo.vendorIdentifier() == 0x0403) && (serialPortInfo.productIdentifier() >= 0x6001)){
 				serial = new QSerialPort;
 				serial->setPortName(serialPortInfo.portName());
 				serial->setBaudRate(460800);
