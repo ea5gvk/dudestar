@@ -57,6 +57,7 @@ public:
 	unsigned char * get_frame(unsigned char *ambe);
 	unsigned char * get_eot();
 	void use_hwambe(bool y){ use_hw = y; }
+	void set_callsign(const char *);
 private:
 	void encode_header(bool eot = 0);
 	void encode_dv2();

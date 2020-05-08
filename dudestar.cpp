@@ -1710,6 +1710,7 @@ void DudeStar::readyReadYSF()
 	if(buf.size() == 14){
 		if(connect_status == CONNECTING){
 			ysf = new YSFEncoder();
+			ysf->set_callsign(callsign.toStdString().c_str());
 			ysfdec = new DSDYSF();
 			mbeenc = new MBEEncoder();
 			mbeenc->set_49bit_mode();

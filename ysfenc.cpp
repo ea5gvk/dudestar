@@ -44,13 +44,20 @@ const char ysf_radioid[] = {'H', '5', '0', '0', '0'};
 YSFEncoder::YSFEncoder()
 {
 	ysf_cnt = 0;
-	::memcpy(gateway, "AD8DP     ", 10);
-	::memcpy(callsign, "AD8DP     ", 10);
-	::memcpy(callsign_full, "AD8DP     ", 10);
 }
 
 YSFEncoder::~YSFEncoder()
 {
+}
+
+void YSFEncoder::set_callsign(const char *cs)
+{
+	::memcpy(gateway, "          ", 10);
+	::memcpy(callsign, "          ", 10);
+	::memcpy(callsign_full, "          ", 10);
+	::memcpy(gateway, cs, ::strlen(cs));
+	::memcpy(callsign, cs, ::strlen(cs));
+	::memcpy(callsign_full, cs, ::strlen(cs));
 }
 
 unsigned char * YSFEncoder::get_frame(unsigned char *ambe)
