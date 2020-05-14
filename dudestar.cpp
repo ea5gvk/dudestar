@@ -66,6 +66,7 @@ const uint8_t AMBE2000_2400_1200[17] = {0x61, 0x00, 0x0d, 0x00, 0x0a, 0x01U, 0x3
 const uint8_t AMBE3000_2450_1150[17] = {0x61, 0x00, 0x0d, 0x00, 0x0a, 0x04U, 0x31U, 0x07U, 0x54U, 0x24U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x6fU, 0x48U};
 const uint8_t AMBE3000_2450_0000[17] = {0x61, 0x00, 0x0d, 0x00, 0x0a, 0x04U, 0x31U, 0x07U, 0x54U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x70U, 0x31U};
 
+const uint8_t AMBE3000_PARITY_DISABLE[8] = {0x61, 0x00, 0x04, 0x00, 0x3f, 0x00, 0x2f, 0x14};
 #ifdef USE_FLITE
 extern "C" {
 extern cst_voice * register_cmu_us_slt(const char *);
@@ -1035,12 +1036,16 @@ void DudeStar::connect_to_serial()
 				serial->setDataBits(QSerialPort::Data8);
 				serial->setStopBits(QSerialPort::OneStop);
 				serial->setParity(QSerialPort::NoParity);
-				serial->setFlowControl(QSerialPort::NoFlowControl);
 				//out << "Baud rate == " << serial->baudRate() << endl;
 				if (serial->open(QIODevice::ReadWrite)) {
 					connect(serial, &QSerialPort::readyRead, this, &DudeStar::process_serial);
+					serial->setFlowControl(QSerialPort::HardwareControl);
+					serial->setRequestToSend(true);
 					QByteArray a;
-					//a.resize(17);
+					a.clear();
+					a.append(reinterpret_cast<const char*>(AMBE3000_PARITY_DISABLE), sizeof(AMBE3000_PARITY_DISABLE));
+					serial->write(a);
+					QThread::msleep(100);
 					a.clear();
 					if(protocol == "DMR"){
 						a.append(reinterpret_cast<const char*>(AMBE3000_2450_1150), sizeof(AMBE3000_2450_1150));
